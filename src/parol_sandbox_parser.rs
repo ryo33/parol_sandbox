@@ -7,6 +7,7 @@
 use parol_runtime::id_tree::Tree;
 use parol_runtime::lexer::{TokenStream, Tokenizer};
 use parol_runtime::miette::Result;
+use parol_runtime::once_cell::sync::Lazy;
 #[allow(unused_imports)]
 use parol_runtime::parser::{
     DFATransition, LLKParser, LookaheadDFA, ParseTreeType, ParseType, Production,
@@ -48,7 +49,7 @@ pub const TERMINAL_NAMES: &[&str; 10] = &[
 ];
 
 /* SCANNER_0: "INITIAL" */
-const SCANNER_0: (&[&str; 5], &[usize; 4]) = (
+const SCANNER_0: (&[&str; 5], &[usize; 1]) = (
     &[
         /*  0 */ UNMATCHABLE_TOKEN,
         /*  1 */ NEW_LINE_TOKEN,
@@ -56,16 +57,11 @@ const SCANNER_0: (&[&str; 5], &[usize; 4]) = (
         /*  3 */ UNMATCHABLE_TOKEN,
         /*  4 */ UNMATCHABLE_TOKEN,
     ],
-    &[
-        5, /* Quote */
-        6, /* A */
-        7, /* B */
-        8, /* C */
-    ],
+    &[5 /* Quote */],
 );
 
 /* SCANNER_1: "String" */
-const SCANNER_1: (&[&str; 5], &[usize; 0]) = (
+const SCANNER_1: (&[&str; 5], &[usize; 3]) = (
     &[
         /*  0 */ UNMATCHABLE_TOKEN,
         /*  1 */ UNMATCHABLE_TOKEN,
@@ -73,27 +69,55 @@ const SCANNER_1: (&[&str; 5], &[usize; 0]) = (
         /*  3 */ UNMATCHABLE_TOKEN,
         /*  4 */ UNMATCHABLE_TOKEN,
     ],
-    &[],
+    &[6 /* A */, 7 /* B */, 8 /* C */],
 );
 
 const MAX_K: usize = 1;
 
-pub const NON_TERMINALS: &[&str; 3] = &[
-    /* 0 */ "ParolSandbox",
-    /* 1 */ "ParolSandboxList",
-    /* 2 */ "ParolSandboxListGroup",
+pub const NON_TERMINALS: &[&str; 7] = &[
+    /* 0 */ "A",
+    /* 1 */ "B",
+    /* 2 */ "C",
+    /* 3 */ "ParolSandbox",
+    /* 4 */ "String",
+    /* 5 */ "StringList",
+    /* 6 */ "StringListGroup",
 ];
 
-pub const LOOKAHEAD_AUTOMATA: &[LookaheadDFA; 3] = &[
-    /* 0 - "ParolSandbox" */
+pub const LOOKAHEAD_AUTOMATA: &[LookaheadDFA; 7] = &[
+    /* 0 - "A" */
+    LookaheadDFA {
+        states: &[Some(7)],
+        transitions: &[],
+        k: 0,
+    },
+    /* 1 - "B" */
+    LookaheadDFA {
+        states: &[Some(8)],
+        transitions: &[],
+        k: 0,
+    },
+    /* 2 - "C" */
+    LookaheadDFA {
+        states: &[Some(9)],
+        transitions: &[],
+        k: 0,
+    },
+    /* 3 - "ParolSandbox" */
     LookaheadDFA {
         states: &[Some(0)],
         transitions: &[],
         k: 0,
     },
-    /* 1 - "ParolSandboxList" */
+    /* 4 - "String" */
     LookaheadDFA {
-        states: &[None, Some(1), Some(5)],
+        states: &[Some(1)],
+        transitions: &[],
+        k: 0,
+    },
+    /* 5 - "StringList" */
+    LookaheadDFA {
+        states: &[None, Some(2), Some(6)],
         transitions: &[
             DFATransition(0, 5, 2),
             DFATransition(0, 6, 1),
@@ -102,9 +126,9 @@ pub const LOOKAHEAD_AUTOMATA: &[LookaheadDFA; 3] = &[
         ],
         k: 1,
     },
-    /* 2 - "ParolSandboxListGroup" */
+    /* 6 - "StringListGroup" */
     LookaheadDFA {
-        states: &[None, Some(2), Some(3), Some(4)],
+        states: &[None, Some(3), Some(4), Some(5)],
         transitions: &[
             DFATransition(0, 6, 1),
             DFATransition(0, 7, 2),
@@ -114,52 +138,77 @@ pub const LOOKAHEAD_AUTOMATA: &[LookaheadDFA; 3] = &[
     },
 ];
 
-pub const PRODUCTIONS: &[Production; 6] = &[
-    // 0 - ParolSandbox: /"/^ /* Clipped */ Push(1) ParolSandboxList /* Vec */ /"/^ /* Clipped */ Pop;
+pub const PRODUCTIONS: &[Production; 10] = &[
+    // 0 - ParolSandbox: String;
     Production {
-        lhs: 0,
+        lhs: 3,
+        production: &[ParseType::N(4)],
+    },
+    // 1 - String: /"/^ /* Clipped */ Push(1) StringList /* Vec */ /"/^ /* Clipped */ Pop;
+    Production {
+        lhs: 4,
         production: &[
             ParseType::Pop,
             ParseType::T(5),
-            ParseType::N(1),
+            ParseType::N(5),
             ParseType::Push(1),
             ParseType::T(5),
         ],
     },
-    // 1 - ParolSandboxList: ParolSandboxListGroup ParolSandboxList;
+    // 2 - StringList: StringListGroup StringList;
     Production {
-        lhs: 1,
-        production: &[ParseType::N(1), ParseType::N(2)],
+        lhs: 5,
+        production: &[ParseType::N(5), ParseType::N(6)],
     },
-    // 2 - ParolSandboxListGroup: /a/;
+    // 3 - StringListGroup: A;
     Production {
-        lhs: 2,
+        lhs: 6,
+        production: &[ParseType::N(0)],
+    },
+    // 4 - StringListGroup: B;
+    Production {
+        lhs: 6,
+        production: &[ParseType::N(1)],
+    },
+    // 5 - StringListGroup: C;
+    Production {
+        lhs: 6,
+        production: &[ParseType::N(2)],
+    },
+    // 6 - StringList: ;
+    Production {
+        lhs: 5,
+        production: &[],
+    },
+    // 7 - A: /a/;
+    Production {
+        lhs: 0,
         production: &[ParseType::T(6)],
     },
-    // 3 - ParolSandboxListGroup: /b/;
+    // 8 - B: /b/;
     Production {
-        lhs: 2,
+        lhs: 1,
         production: &[ParseType::T(7)],
     },
-    // 4 - ParolSandboxListGroup: /c/;
+    // 9 - C: /c/;
     Production {
         lhs: 2,
         production: &[ParseType::T(8)],
     },
-    // 5 - ParolSandboxList: ;
-    Production {
-        lhs: 1,
-        production: &[],
-    },
 ];
 
-parol_runtime::lazy_static::lazy_static! {
-    static ref TOKENIZERS: Vec<(&'static str, Tokenizer)> = vec![
-        ("INITIAL", Tokenizer::build(TERMINALS, SCANNER_0.0, SCANNER_0.1).unwrap()),
-        ("String", Tokenizer::build(TERMINALS, SCANNER_1.0, SCANNER_1.1).unwrap()),
-
-    ];
-}
+static TOKENIZERS: Lazy<Vec<(&'static str, Tokenizer)>> = Lazy::new(|| {
+    vec![
+        (
+            "INITIAL",
+            Tokenizer::build(TERMINALS, SCANNER_0.0, SCANNER_0.1).unwrap(),
+        ),
+        (
+            "String",
+            Tokenizer::build(TERMINALS, SCANNER_1.0, SCANNER_1.1).unwrap(),
+        ),
+    ]
+});
 
 pub fn parse<'t, T>(
     input: &'t str,
@@ -170,7 +219,7 @@ where
     T: AsRef<Path>,
 {
     let mut llk_parser = LLKParser::new(
-        0,
+        3,
         LOOKAHEAD_AUTOMATA,
         PRODUCTIONS,
         TERMINAL_NAMES,

@@ -27,22 +27,19 @@ mod tests {
     #[test]
     fn it_works() {
         assert_eq!(
-            parse(
-                r#"
-        "abc"
-        "#
-            )
-            .parol_sandbox_list
-            .into_iter()
-            .map(|x| match *x.parol_sandbox_list_group {
-                parol_sandbox_grammar_trait::ParolSandboxListGroup::ParolSandboxListGroup0(x) =>
-                    x.a.text().to_string(),
-                parol_sandbox_grammar_trait::ParolSandboxListGroup::ParolSandboxListGroup1(x) =>
-                    x.b.text().to_string(),
-                parol_sandbox_grammar_trait::ParolSandboxListGroup::ParolSandboxListGroup2(x) =>
-                    x.c.text().to_string(),
-            })
-            .collect::<Vec<_>>(),
+            parse(r#" "abc" "#)
+                .string
+                .string_list
+                .into_iter()
+                .map(|x| match *x.string_list_group {
+                    parol_sandbox_grammar_trait::StringListGroup::StringListGroup0(x) =>
+                        x.a.a.text().to_string(),
+                    parol_sandbox_grammar_trait::StringListGroup::StringListGroup1(x) =>
+                        x.b.b.text().to_string(),
+                    parol_sandbox_grammar_trait::StringListGroup::StringListGroup2(x) =>
+                        x.c.c.text().to_string(),
+                })
+                .collect::<Vec<_>>(),
             vec!["a".to_string(), "b".to_string(), "c".to_string()]
         );
     }
