@@ -12,7 +12,8 @@
 
 ParolSandbox: String;
 
-String: /"/^ %push(String) { A | B | C } /"/^ %pop();
+String: /"/^ %push(String) { A | B | C } StringWrapper^ %pop();
 A: <String> /a/;
 B: <String> /b/;
 C: <String> /c/;
+StringWrapper: <String> /"/;

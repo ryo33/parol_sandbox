@@ -41,7 +41,7 @@ pub const TERMINAL_NAMES: &[&str; 10] = &[
     /*  2 */ "Whitespace",
     /*  3 */ "LineComment",
     /*  4 */ "BlockComment",
-    /*  5 */ "Quote",
+    /*  5 */ "StringWrapper",
     /*  6 */ "A",
     /*  7 */ "B",
     /*  8 */ "C",
@@ -57,11 +57,11 @@ const SCANNER_0: (&[&str; 5], &[usize; 1]) = (
         /*  3 */ UNMATCHABLE_TOKEN,
         /*  4 */ UNMATCHABLE_TOKEN,
     ],
-    &[5 /* Quote */],
+    &[5 /* StringWrapper */],
 );
 
 /* SCANNER_1: "String" */
-const SCANNER_1: (&[&str; 5], &[usize; 3]) = (
+const SCANNER_1: (&[&str; 5], &[usize; 4]) = (
     &[
         /*  0 */ UNMATCHABLE_TOKEN,
         /*  1 */ UNMATCHABLE_TOKEN,
@@ -69,12 +69,17 @@ const SCANNER_1: (&[&str; 5], &[usize; 3]) = (
         /*  3 */ UNMATCHABLE_TOKEN,
         /*  4 */ UNMATCHABLE_TOKEN,
     ],
-    &[6 /* A */, 7 /* B */, 8 /* C */],
+    &[
+        5, /* StringWrapper */
+        6, /* A */
+        7, /* B */
+        8, /* C */
+    ],
 );
 
 const MAX_K: usize = 1;
 
-pub const NON_TERMINALS: &[&str; 7] = &[
+pub const NON_TERMINALS: &[&str; 8] = &[
     /* 0 */ "A",
     /* 1 */ "B",
     /* 2 */ "C",
@@ -82,9 +87,10 @@ pub const NON_TERMINALS: &[&str; 7] = &[
     /* 4 */ "String",
     /* 5 */ "StringList",
     /* 6 */ "StringListGroup",
+    /* 7 */ "StringWrapper",
 ];
 
-pub const LOOKAHEAD_AUTOMATA: &[LookaheadDFA; 7] = &[
+pub const LOOKAHEAD_AUTOMATA: &[LookaheadDFA; 8] = &[
     /* 0 - "A" */
     LookaheadDFA {
         states: &[Some(7)],
@@ -136,20 +142,26 @@ pub const LOOKAHEAD_AUTOMATA: &[LookaheadDFA; 7] = &[
         ],
         k: 1,
     },
+    /* 7 - "StringWrapper" */
+    LookaheadDFA {
+        states: &[Some(10)],
+        transitions: &[],
+        k: 0,
+    },
 ];
 
-pub const PRODUCTIONS: &[Production; 10] = &[
+pub const PRODUCTIONS: &[Production; 11] = &[
     // 0 - ParolSandbox: String;
     Production {
         lhs: 3,
         production: &[ParseType::N(4)],
     },
-    // 1 - String: /"/^ /* Clipped */ Push(1) StringList /* Vec */ /"/^ /* Clipped */ Pop;
+    // 1 - String: /"/^ /* Clipped */ Push(1) StringList /* Vec */ StringWrapper^ /* Clipped */ Pop;
     Production {
         lhs: 4,
         production: &[
             ParseType::Pop,
-            ParseType::T(5),
+            ParseType::N(7),
             ParseType::N(5),
             ParseType::Push(1),
             ParseType::T(5),
@@ -194,6 +206,11 @@ pub const PRODUCTIONS: &[Production; 10] = &[
     Production {
         lhs: 2,
         production: &[ParseType::T(8)],
+    },
+    // 10 - StringWrapper: /"/;
+    Production {
+        lhs: 7,
+        production: &[ParseType::T(5)],
     },
 ];
 

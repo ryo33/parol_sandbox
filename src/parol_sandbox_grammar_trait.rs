@@ -41,6 +41,11 @@ pub trait ParolSandboxGrammarTrait<'t> {
     fn c(&mut self, _arg: &C<'t>) -> Result<()> {
         Ok(())
     }
+
+    /// Semantic action for non-terminal 'StringWrapper'
+    fn string_wrapper(&mut self, _arg: &StringWrapper<'t>) -> Result<()> {
+        Ok(())
+    }
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -151,6 +156,15 @@ pub enum StringListGroup<'t> {
     StringListGroup2(StringListGroup2<'t>),
 }
 
+///
+/// Type derived for non-terminal StringWrapper
+///
+#[allow(dead_code)]
+#[derive(Builder, Debug, Clone)]
+pub struct StringWrapper<'t> {
+    pub string_wrapper: Token<'t>, /* " */
+}
+
 // -------------------------------------------------------------------------------------------------
 
 ///
@@ -166,6 +180,7 @@ pub enum ASTType<'t> {
     String(String<'t>),
     StringList(Vec<StringList<'t>>),
     StringListGroup(StringListGroup<'t>),
+    StringWrapper(StringWrapper<'t>),
 }
 
 /// Auto-implemented adapter grammar
@@ -256,23 +271,25 @@ impl<'t, 'u> ParolSandboxGrammarAuto<'t, 'u> {
 
     /// Semantic action for production 1:
     ///
-    /// String: /"/^ /* Clipped */ %push(String) StringList /* Vec */ /"/^ /* Clipped */ %pop();
+    /// String: /"/^ /* Clipped */ %push(String) StringList /* Vec */ StringWrapper^ /* Clipped */ %pop();
     ///
     #[parol_runtime::function_name::named]
     fn string(
         &mut self,
-        _quote: &ParseTreeStackEntry<'t>,
+        _string_wrapper: &ParseTreeStackEntry<'t>,
         _string_list: &ParseTreeStackEntry<'t>,
-        _quote0: &ParseTreeStackEntry<'t>,
+        _string_wrapper0: &ParseTreeStackEntry<'t>,
         _parse_tree: &Tree<ParseTreeType<'t>>,
     ) -> Result<()> {
         let context = function_name!();
         trace!("{}", self.trace_item_stack(context));
+        // Ignore clipped member 'string_wrapper0'
+        self.pop(context);
         let string_list = pop_and_reverse_item!(self, string_list, StringList, context);
         let string_built = StringBuilder::default()
-            // Ignore clipped member 'quote'
+            // Ignore clipped member 'string_wrapper'
             .string_list(string_list)
-            // Ignore clipped member 'quote0'
+            // Ignore clipped member 'string_wrapper0'
             .build()
             .into_diagnostic()?;
         // Calling user action here
@@ -447,6 +464,29 @@ impl<'t, 'u> ParolSandboxGrammarAuto<'t, 'u> {
         self.push(ASTType::C(c_built), context);
         Ok(())
     }
+
+    /// Semantic action for production 10:
+    ///
+    /// StringWrapper: <String>/"/;
+    ///
+    #[parol_runtime::function_name::named]
+    fn string_wrapper(
+        &mut self,
+        string_wrapper: &ParseTreeStackEntry<'t>,
+        parse_tree: &Tree<ParseTreeType<'t>>,
+    ) -> Result<()> {
+        let context = function_name!();
+        trace!("{}", self.trace_item_stack(context));
+        let string_wrapper = string_wrapper.token(parse_tree)?.clone();
+        let string_wrapper_built = StringWrapperBuilder::default()
+            .string_wrapper(string_wrapper)
+            .build()
+            .into_diagnostic()?;
+        // Calling user action here
+        self.user_grammar.string_wrapper(&string_wrapper_built)?;
+        self.push(ASTType::StringWrapper(string_wrapper_built), context);
+        Ok(())
+    }
 }
 
 impl<'t> UserActionsTrait<'t> for ParolSandboxGrammarAuto<'t, '_> {
@@ -470,6 +510,7 @@ impl<'t> UserActionsTrait<'t> for ParolSandboxGrammarAuto<'t, '_> {
             7 => self.a(&children[0], parse_tree),
             8 => self.b(&children[0], parse_tree),
             9 => self.c(&children[0], parse_tree),
+            10 => self.string_wrapper(&children[0], parse_tree),
             _ => Err(miette!("Unhandled production number: {}", prod_num)),
         }
     }

@@ -7,7 +7,7 @@
 %%
 
 /*  0 */ ParolSandbox: String;
-/*  1 */ String: /"/^ /* Clipped */ %push(String) StringList /* Vec */ /"/^ /* Clipped */ %pop();
+/*  1 */ String: /"/^ /* Clipped */ %push(String) StringList /* Vec */ StringWrapper^ /* Clipped */ %pop();
 /*  2 */ StringList /* Vec<T>::Push */: StringListGroup StringList;
 /*  3 */ StringListGroup: A;
 /*  4 */ StringListGroup: B;
@@ -16,3 +16,4 @@
 /*  7 */ A: <String>/a/;
 /*  8 */ B: <String>/b/;
 /*  9 */ C: <String>/c/;
+/* 10 */ StringWrapper: <String>/"/;

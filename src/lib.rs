@@ -27,7 +27,7 @@ mod tests {
     #[test]
     fn it_works() {
         assert_eq!(
-            parse(r#" "abc" "#)
+            parse(r#""abc""#)
                 .string
                 .string_list
                 .into_iter()
