@@ -11,8 +11,8 @@ fn main() {
         .enable_auto_generation()
         .user_type_name("ParolSandboxGrammar")
         .user_trait_module_name("parol_sandbox_grammar")
-        .max_lookahead(1)
-        .unwrap()
+        // .max_lookahead(5)
+        // .unwrap()
         .generate_parser()
         .unwrap();
 }

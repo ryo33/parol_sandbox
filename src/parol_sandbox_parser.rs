@@ -7,7 +7,6 @@
 use parol_runtime::id_tree::Tree;
 use parol_runtime::lexer::{TokenStream, Tokenizer};
 use parol_runtime::miette::Result;
-use parol_runtime::once_cell::sync::Lazy;
 #[allow(unused_imports)]
 use parol_runtime::parser::{
     DFATransition, LLKParser, LookaheadDFA, ParseTreeType, ParseType, Production,
@@ -22,34 +21,36 @@ use parol_runtime::lexer::tokenizer::{
     ERROR_TOKEN, NEW_LINE_TOKEN, UNMATCHABLE_TOKEN, WHITESPACE_TOKEN,
 };
 
-pub const TERMINALS: &[&str; 10] = &[
+pub const TERMINALS: &[&str; 11] = &[
     /*  0 */ UNMATCHABLE_TOKEN,
     /*  1 */ UNMATCHABLE_TOKEN,
     /*  2 */ UNMATCHABLE_TOKEN,
     /*  3 */ UNMATCHABLE_TOKEN,
     /*  4 */ UNMATCHABLE_TOKEN,
-    /*  5 */ r###"""###,
-    /*  6 */ r###"a"###,
-    /*  7 */ r###"b"###,
-    /*  8 */ r###"c"###,
-    /*  9 */ ERROR_TOKEN,
+    /*  5 */ r###"!"###,
+    /*  6 */ r###"\->"###,
+    /*  7 */ r###"a"###,
+    /*  8 */ r###"b"###,
+    /*  9 */ r###"c"###,
+    /* 10 */ ERROR_TOKEN,
 ];
 
-pub const TERMINAL_NAMES: &[&str; 10] = &[
+pub const TERMINAL_NAMES: &[&str; 11] = &[
     /*  0 */ "EndOfInput",
     /*  1 */ "Newline",
     /*  2 */ "Whitespace",
     /*  3 */ "LineComment",
     /*  4 */ "BlockComment",
-    /*  5 */ "StringWrapper",
-    /*  6 */ "A",
-    /*  7 */ "B",
-    /*  8 */ "C",
-    /*  9 */ "Error",
+    /*  5 */ "Bang",
+    /*  6 */ "MinusGT",
+    /*  7 */ "A",
+    /*  8 */ "B",
+    /*  9 */ "C",
+    /* 10 */ "Error",
 ];
 
 /* SCANNER_0: "INITIAL" */
-const SCANNER_0: (&[&str; 5], &[usize; 1]) = (
+const SCANNER_0: (&[&str; 5], &[usize; 5]) = (
     &[
         /*  0 */ UNMATCHABLE_TOKEN,
         /*  1 */ NEW_LINE_TOKEN,
@@ -57,11 +58,17 @@ const SCANNER_0: (&[&str; 5], &[usize; 1]) = (
         /*  3 */ UNMATCHABLE_TOKEN,
         /*  4 */ UNMATCHABLE_TOKEN,
     ],
-    &[5 /* StringWrapper */],
+    &[
+        5, /* Bang */
+        6, /* MinusGT */
+        7, /* A */
+        8, /* B */
+        9, /* C */
+    ],
 );
 
 /* SCANNER_1: "String" */
-const SCANNER_1: (&[&str; 5], &[usize; 4]) = (
+const SCANNER_1: (&[&str; 5], &[usize; 0]) = (
     &[
         /*  0 */ UNMATCHABLE_TOKEN,
         /*  1 */ UNMATCHABLE_TOKEN,
@@ -69,163 +76,98 @@ const SCANNER_1: (&[&str; 5], &[usize; 4]) = (
         /*  3 */ UNMATCHABLE_TOKEN,
         /*  4 */ UNMATCHABLE_TOKEN,
     ],
-    &[
-        5, /* StringWrapper */
-        6, /* A */
-        7, /* B */
-        8, /* C */
-    ],
+    &[],
 );
 
 const MAX_K: usize = 1;
 
-pub const NON_TERMINALS: &[&str; 8] = &[
-    /* 0 */ "A",
-    /* 1 */ "B",
-    /* 2 */ "C",
-    /* 3 */ "ParolSandbox",
-    /* 4 */ "String",
-    /* 5 */ "StringList",
-    /* 6 */ "StringListGroup",
-    /* 7 */ "StringWrapper",
+pub const NON_TERMINALS: &[&str; 5] = &[
+    /* 0 */ "A", /* 1 */ "B", /* 2 */ "C", /* 3 */ "Expr",
+    /* 4 */ "ExprOpt",
 ];
 
-pub const LOOKAHEAD_AUTOMATA: &[LookaheadDFA; 8] = &[
+pub const LOOKAHEAD_AUTOMATA: &[LookaheadDFA; 5] = &[
     /* 0 - "A" */
     LookaheadDFA {
-        states: &[Some(7)],
+        states: &[Some(4)],
         transitions: &[],
         k: 0,
     },
     /* 1 - "B" */
     LookaheadDFA {
-        states: &[Some(8)],
+        states: &[Some(5)],
         transitions: &[],
         k: 0,
     },
     /* 2 - "C" */
     LookaheadDFA {
-        states: &[Some(9)],
+        states: &[Some(6)],
         transitions: &[],
         k: 0,
     },
-    /* 3 - "ParolSandbox" */
+    /* 3 - "Expr" */
     LookaheadDFA {
-        states: &[Some(0)],
-        transitions: &[],
-        k: 0,
+        states: &[None, Some(0), Some(1)],
+        transitions: &[DFATransition(0, 5, 2), DFATransition(0, 7, 1)],
+        k: 1,
     },
-    /* 4 - "String" */
+    /* 4 - "ExprOpt" */
     LookaheadDFA {
-        states: &[Some(1)],
-        transitions: &[],
-        k: 0,
-    },
-    /* 5 - "StringList" */
-    LookaheadDFA {
-        states: &[None, Some(2), Some(6)],
+        states: &[None, Some(2), Some(3)],
         transitions: &[
             DFATransition(0, 5, 2),
             DFATransition(0, 6, 1),
-            DFATransition(0, 7, 1),
-            DFATransition(0, 8, 1),
-        ],
-        k: 1,
-    },
-    /* 6 - "StringListGroup" */
-    LookaheadDFA {
-        states: &[None, Some(3), Some(4), Some(5)],
-        transitions: &[
-            DFATransition(0, 6, 1),
             DFATransition(0, 7, 2),
-            DFATransition(0, 8, 3),
         ],
         k: 1,
-    },
-    /* 7 - "StringWrapper" */
-    LookaheadDFA {
-        states: &[Some(10)],
-        transitions: &[],
-        k: 0,
     },
 ];
 
-pub const PRODUCTIONS: &[Production; 11] = &[
-    // 0 - ParolSandbox: String;
+pub const PRODUCTIONS: &[Production; 7] = &[
+    // 0 - Expr: A B C;
     Production {
         lhs: 3,
-        production: &[ParseType::N(4)],
+        production: &[ParseType::N(2), ParseType::N(1), ParseType::N(0)],
     },
-    // 1 - String: /"/^ /* Clipped */ Push(1) StringList /* Vec */ StringWrapper^ /* Clipped */ Pop;
+    // 1 - Expr: '!' ExprOpt /* Option */ Expr;
+    Production {
+        lhs: 3,
+        production: &[ParseType::N(3), ParseType::N(4), ParseType::T(5)],
+    },
+    // 2 - ExprOpt: '->' Expr;
     Production {
         lhs: 4,
-        production: &[
-            ParseType::Pop,
-            ParseType::N(7),
-            ParseType::N(5),
-            ParseType::Push(1),
-            ParseType::T(5),
-        ],
+        production: &[ParseType::N(3), ParseType::T(6)],
     },
-    // 2 - StringList: StringListGroup StringList;
+    // 3 - ExprOpt: ;
     Production {
-        lhs: 5,
-        production: &[ParseType::N(5), ParseType::N(6)],
-    },
-    // 3 - StringListGroup: A;
-    Production {
-        lhs: 6,
-        production: &[ParseType::N(0)],
-    },
-    // 4 - StringListGroup: B;
-    Production {
-        lhs: 6,
-        production: &[ParseType::N(1)],
-    },
-    // 5 - StringListGroup: C;
-    Production {
-        lhs: 6,
-        production: &[ParseType::N(2)],
-    },
-    // 6 - StringList: ;
-    Production {
-        lhs: 5,
+        lhs: 4,
         production: &[],
     },
-    // 7 - A: /a/;
+    // 4 - A: "a";
     Production {
         lhs: 0,
-        production: &[ParseType::T(6)],
-    },
-    // 8 - B: /b/;
-    Production {
-        lhs: 1,
         production: &[ParseType::T(7)],
     },
-    // 9 - C: /c/;
+    // 5 - B: "b";
     Production {
-        lhs: 2,
+        lhs: 1,
         production: &[ParseType::T(8)],
     },
-    // 10 - StringWrapper: /"/;
+    // 6 - C: "c";
     Production {
-        lhs: 7,
-        production: &[ParseType::T(5)],
+        lhs: 2,
+        production: &[ParseType::T(9)],
     },
 ];
 
-static TOKENIZERS: Lazy<Vec<(&'static str, Tokenizer)>> = Lazy::new(|| {
-    vec![
-        (
-            "INITIAL",
-            Tokenizer::build(TERMINALS, SCANNER_0.0, SCANNER_0.1).unwrap(),
-        ),
-        (
-            "String",
-            Tokenizer::build(TERMINALS, SCANNER_1.0, SCANNER_1.1).unwrap(),
-        ),
-    ]
-});
+parol_runtime::lazy_static::lazy_static! {
+    static ref TOKENIZERS: Vec<(&'static str, Tokenizer)> = vec![
+        ("INITIAL", Tokenizer::build(TERMINALS, SCANNER_0.0, SCANNER_0.1).unwrap()),
+        ("String", Tokenizer::build(TERMINALS, SCANNER_1.0, SCANNER_1.1).unwrap()),
+
+    ];
+}
 
 pub fn parse<'t, T>(
     input: &'t str,

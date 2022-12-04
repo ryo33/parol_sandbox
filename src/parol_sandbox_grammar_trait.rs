@@ -17,13 +17,8 @@ use parol_runtime::parser::{ParseTreeStackEntry, ParseTreeType, UserActionsTrait
 /// Semantic actions trait generated for the user grammar
 /// All functions have default implementations.
 pub trait ParolSandboxGrammarTrait<'t> {
-    /// Semantic action for non-terminal 'ParolSandbox'
-    fn parol_sandbox(&mut self, _arg: &ParolSandbox<'t>) -> Result<()> {
-        Ok(())
-    }
-
-    /// Semantic action for non-terminal 'String'
-    fn string(&mut self, _arg: &String<'t>) -> Result<()> {
+    /// Semantic action for non-terminal 'Expr'
+    fn expr(&mut self, _arg: &Expr<'t>) -> Result<()> {
         Ok(())
     }
 
@@ -41,11 +36,6 @@ pub trait ParolSandboxGrammarTrait<'t> {
     fn c(&mut self, _arg: &C<'t>) -> Result<()> {
         Ok(())
     }
-
-    /// Semantic action for non-terminal 'StringWrapper'
-    fn string_wrapper(&mut self, _arg: &StringWrapper<'t>) -> Result<()> {
-        Ok(())
-    }
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -54,36 +44,29 @@ pub trait ParolSandboxGrammarTrait<'t> {
 //
 
 ///
-/// Type derived for production 3
+/// Type derived for production 0
 ///
-/// StringListGroup: A;
+/// Expr: A B C;
 ///
 #[allow(dead_code)]
 #[derive(Builder, Debug, Clone)]
-pub struct StringListGroup0<'t> {
+pub struct Expr0<'t> {
     pub a: Box<A<'t>>,
-}
-
-///
-/// Type derived for production 4
-///
-/// StringListGroup: B;
-///
-#[allow(dead_code)]
-#[derive(Builder, Debug, Clone)]
-pub struct StringListGroup1<'t> {
     pub b: Box<B<'t>>,
+    pub c: Box<C<'t>>,
 }
 
 ///
-/// Type derived for production 5
+/// Type derived for production 1
 ///
-/// StringListGroup: C;
+/// Expr: '!' ExprOpt /* Option */ Expr;
 ///
 #[allow(dead_code)]
 #[derive(Builder, Debug, Clone)]
-pub struct StringListGroup2<'t> {
-    pub c: Box<C<'t>>,
+pub struct Expr1<'t> {
+    pub bang: Token<'t>, /* ! */
+    pub expr_opt: Option<Box<ExprOpt<'t>>>,
+    pub expr: Box<Expr<'t>>,
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -119,50 +102,23 @@ pub struct C<'t> {
 }
 
 ///
-/// Type derived for non-terminal ParolSandbox
-///
-#[allow(dead_code)]
-#[derive(Builder, Debug, Clone)]
-pub struct ParolSandbox<'t> {
-    pub string: Box<String<'t>>,
-}
-
-///
-/// Type derived for non-terminal String
-///
-#[allow(dead_code)]
-#[derive(Builder, Debug, Clone)]
-pub struct String<'t> {
-    pub string_list: Vec<StringList<'t>>,
-}
-
-///
-/// Type derived for non-terminal StringList
-///
-#[allow(dead_code)]
-#[derive(Builder, Debug, Clone)]
-pub struct StringList<'t> {
-    pub string_list_group: Box<StringListGroup<'t>>,
-}
-
-///
-/// Type derived for non-terminal StringListGroup
+/// Type derived for non-terminal Expr
 ///
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
-pub enum StringListGroup<'t> {
-    StringListGroup0(StringListGroup0<'t>),
-    StringListGroup1(StringListGroup1<'t>),
-    StringListGroup2(StringListGroup2<'t>),
+pub enum Expr<'t> {
+    Expr0(Expr0<'t>),
+    Expr1(Expr1<'t>),
 }
 
 ///
-/// Type derived for non-terminal StringWrapper
+/// Type derived for non-terminal ExprOpt
 ///
 #[allow(dead_code)]
 #[derive(Builder, Debug, Clone)]
-pub struct StringWrapper<'t> {
-    pub string_wrapper: Token<'t>, /* " */
+pub struct ExprOpt<'t> {
+    pub minus_g_t: Token<'t>, /* -> */
+    pub expr: Box<Expr<'t>>,
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -176,11 +132,8 @@ pub enum ASTType<'t> {
     A(A<'t>),
     B(B<'t>),
     C(C<'t>),
-    ParolSandbox(ParolSandbox<'t>),
-    String(String<'t>),
-    StringList(Vec<StringList<'t>>),
-    StringListGroup(StringListGroup<'t>),
-    StringWrapper(StringWrapper<'t>),
+    Expr(Expr<'t>),
+    ExprOpt(Option<Box<ExprOpt<'t>>>),
 }
 
 /// Auto-implemented adapter grammar
@@ -248,166 +201,103 @@ impl<'t, 'u> ParolSandboxGrammarAuto<'t, 'u> {
 
     /// Semantic action for production 0:
     ///
-    /// ParolSandbox: String;
+    /// Expr: A B C;
     ///
     #[parol_runtime::function_name::named]
-    fn parol_sandbox(
-        &mut self,
-        _string: &ParseTreeStackEntry<'t>,
-        _parse_tree: &Tree<ParseTreeType<'t>>,
-    ) -> Result<()> {
-        let context = function_name!();
-        trace!("{}", self.trace_item_stack(context));
-        let string = pop_item!(self, string, String, context);
-        let parol_sandbox_built = ParolSandboxBuilder::default()
-            .string(Box::new(string))
-            .build()
-            .into_diagnostic()?;
-        // Calling user action here
-        self.user_grammar.parol_sandbox(&parol_sandbox_built)?;
-        self.push(ASTType::ParolSandbox(parol_sandbox_built), context);
-        Ok(())
-    }
-
-    /// Semantic action for production 1:
-    ///
-    /// String: /"/^ /* Clipped */ %push(String) StringList /* Vec */ StringWrapper^ /* Clipped */ %pop();
-    ///
-    #[parol_runtime::function_name::named]
-    fn string(
-        &mut self,
-        _string_wrapper: &ParseTreeStackEntry<'t>,
-        _string_list: &ParseTreeStackEntry<'t>,
-        _string_wrapper0: &ParseTreeStackEntry<'t>,
-        _parse_tree: &Tree<ParseTreeType<'t>>,
-    ) -> Result<()> {
-        let context = function_name!();
-        trace!("{}", self.trace_item_stack(context));
-        // Ignore clipped member 'string_wrapper0'
-        self.pop(context);
-        let string_list = pop_and_reverse_item!(self, string_list, StringList, context);
-        let string_built = StringBuilder::default()
-            // Ignore clipped member 'string_wrapper'
-            .string_list(string_list)
-            // Ignore clipped member 'string_wrapper0'
-            .build()
-            .into_diagnostic()?;
-        // Calling user action here
-        self.user_grammar.string(&string_built)?;
-        self.push(ASTType::String(string_built), context);
-        Ok(())
-    }
-
-    /// Semantic action for production 2:
-    ///
-    /// StringList /* Vec<T>::Push */: StringListGroup StringList;
-    ///
-    #[parol_runtime::function_name::named]
-    fn string_list_0(
-        &mut self,
-        _string_list_group: &ParseTreeStackEntry<'t>,
-        _string_list: &ParseTreeStackEntry<'t>,
-        _parse_tree: &Tree<ParseTreeType<'t>>,
-    ) -> Result<()> {
-        let context = function_name!();
-        trace!("{}", self.trace_item_stack(context));
-        let mut string_list = pop_item!(self, string_list, StringList, context);
-        let string_list_group = pop_item!(self, string_list_group, StringListGroup, context);
-        let string_list_0_built = StringListBuilder::default()
-            .string_list_group(Box::new(string_list_group))
-            .build()
-            .into_diagnostic()?;
-        // Add an element to the vector
-        string_list.push(string_list_0_built);
-        self.push(ASTType::StringList(string_list), context);
-        Ok(())
-    }
-
-    /// Semantic action for production 3:
-    ///
-    /// StringListGroup: A;
-    ///
-    #[parol_runtime::function_name::named]
-    fn string_list_group_0(
+    fn expr_0(
         &mut self,
         _a: &ParseTreeStackEntry<'t>,
-        _parse_tree: &Tree<ParseTreeType<'t>>,
-    ) -> Result<()> {
-        let context = function_name!();
-        trace!("{}", self.trace_item_stack(context));
-        let a = pop_item!(self, a, A, context);
-        let string_list_group_0_built = StringListGroup0Builder::default()
-            .a(Box::new(a))
-            .build()
-            .into_diagnostic()?;
-        let string_list_group_0_built =
-            StringListGroup::StringListGroup0(string_list_group_0_built);
-        self.push(ASTType::StringListGroup(string_list_group_0_built), context);
-        Ok(())
-    }
-
-    /// Semantic action for production 4:
-    ///
-    /// StringListGroup: B;
-    ///
-    #[parol_runtime::function_name::named]
-    fn string_list_group_1(
-        &mut self,
         _b: &ParseTreeStackEntry<'t>,
-        _parse_tree: &Tree<ParseTreeType<'t>>,
-    ) -> Result<()> {
-        let context = function_name!();
-        trace!("{}", self.trace_item_stack(context));
-        let b = pop_item!(self, b, B, context);
-        let string_list_group_1_built = StringListGroup1Builder::default()
-            .b(Box::new(b))
-            .build()
-            .into_diagnostic()?;
-        let string_list_group_1_built =
-            StringListGroup::StringListGroup1(string_list_group_1_built);
-        self.push(ASTType::StringListGroup(string_list_group_1_built), context);
-        Ok(())
-    }
-
-    /// Semantic action for production 5:
-    ///
-    /// StringListGroup: C;
-    ///
-    #[parol_runtime::function_name::named]
-    fn string_list_group_2(
-        &mut self,
         _c: &ParseTreeStackEntry<'t>,
         _parse_tree: &Tree<ParseTreeType<'t>>,
     ) -> Result<()> {
         let context = function_name!();
         trace!("{}", self.trace_item_stack(context));
         let c = pop_item!(self, c, C, context);
-        let string_list_group_2_built = StringListGroup2Builder::default()
+        let b = pop_item!(self, b, B, context);
+        let a = pop_item!(self, a, A, context);
+        let expr_0_built = Expr0Builder::default()
+            .a(Box::new(a))
+            .b(Box::new(b))
             .c(Box::new(c))
             .build()
             .into_diagnostic()?;
-        let string_list_group_2_built =
-            StringListGroup::StringListGroup2(string_list_group_2_built);
-        self.push(ASTType::StringListGroup(string_list_group_2_built), context);
+        let expr_0_built = Expr::Expr0(expr_0_built);
+        // Calling user action here
+        self.user_grammar.expr(&expr_0_built)?;
+        self.push(ASTType::Expr(expr_0_built), context);
         Ok(())
     }
 
-    /// Semantic action for production 6:
+    /// Semantic action for production 1:
     ///
-    /// StringList /* Vec<T>::New */: ;
+    /// Expr: '!' ExprOpt /* Option */ Expr;
     ///
     #[parol_runtime::function_name::named]
-    fn string_list_1(&mut self, _parse_tree: &Tree<ParseTreeType<'t>>) -> Result<()> {
+    fn expr_1(
+        &mut self,
+        bang: &ParseTreeStackEntry<'t>,
+        _expr_opt: &ParseTreeStackEntry<'t>,
+        _expr: &ParseTreeStackEntry<'t>,
+        parse_tree: &Tree<ParseTreeType<'t>>,
+    ) -> Result<()> {
         let context = function_name!();
         trace!("{}", self.trace_item_stack(context));
-        let string_list_1_built = Vec::new();
-        self.push(ASTType::StringList(string_list_1_built), context);
+        let bang = bang.token(parse_tree)?.clone();
+        let expr = pop_item!(self, expr, Expr, context);
+        let expr_opt = pop_item!(self, expr_opt, ExprOpt, context);
+        let expr_1_built = Expr1Builder::default()
+            .bang(bang)
+            .expr_opt(expr_opt)
+            .expr(Box::new(expr))
+            .build()
+            .into_diagnostic()?;
+        let expr_1_built = Expr::Expr1(expr_1_built);
+        // Calling user action here
+        self.user_grammar.expr(&expr_1_built)?;
+        self.push(ASTType::Expr(expr_1_built), context);
         Ok(())
     }
 
-    /// Semantic action for production 7:
+    /// Semantic action for production 2:
     ///
-    /// A: <String>/a/;
+    /// ExprOpt /* Option<T>::Some */: '->' Expr;
+    ///
+    #[parol_runtime::function_name::named]
+    fn expr_opt_0(
+        &mut self,
+        minus_g_t: &ParseTreeStackEntry<'t>,
+        _expr: &ParseTreeStackEntry<'t>,
+        parse_tree: &Tree<ParseTreeType<'t>>,
+    ) -> Result<()> {
+        let context = function_name!();
+        trace!("{}", self.trace_item_stack(context));
+        let minus_g_t = minus_g_t.token(parse_tree)?.clone();
+        let expr = pop_item!(self, expr, Expr, context);
+        let expr_opt_0_built = ExprOptBuilder::default()
+            .minus_g_t(minus_g_t)
+            .expr(Box::new(expr))
+            .build()
+            .into_diagnostic()?;
+        self.push(ASTType::ExprOpt(Some(Box::new(expr_opt_0_built))), context);
+        Ok(())
+    }
+
+    /// Semantic action for production 3:
+    ///
+    /// ExprOpt /* Option<T>::None */: ;
+    ///
+    #[parol_runtime::function_name::named]
+    fn expr_opt_1(&mut self, _parse_tree: &Tree<ParseTreeType<'t>>) -> Result<()> {
+        let context = function_name!();
+        trace!("{}", self.trace_item_stack(context));
+        self.push(ASTType::ExprOpt(None), context);
+        Ok(())
+    }
+
+    /// Semantic action for production 4:
+    ///
+    /// A: "a";
     ///
     #[parol_runtime::function_name::named]
     fn a(
@@ -425,9 +315,9 @@ impl<'t, 'u> ParolSandboxGrammarAuto<'t, 'u> {
         Ok(())
     }
 
-    /// Semantic action for production 8:
+    /// Semantic action for production 5:
     ///
-    /// B: <String>/b/;
+    /// B: "b";
     ///
     #[parol_runtime::function_name::named]
     fn b(
@@ -445,9 +335,9 @@ impl<'t, 'u> ParolSandboxGrammarAuto<'t, 'u> {
         Ok(())
     }
 
-    /// Semantic action for production 9:
+    /// Semantic action for production 6:
     ///
-    /// C: <String>/c/;
+    /// C: "c";
     ///
     #[parol_runtime::function_name::named]
     fn c(
@@ -464,29 +354,6 @@ impl<'t, 'u> ParolSandboxGrammarAuto<'t, 'u> {
         self.push(ASTType::C(c_built), context);
         Ok(())
     }
-
-    /// Semantic action for production 10:
-    ///
-    /// StringWrapper: <String>/"/;
-    ///
-    #[parol_runtime::function_name::named]
-    fn string_wrapper(
-        &mut self,
-        string_wrapper: &ParseTreeStackEntry<'t>,
-        parse_tree: &Tree<ParseTreeType<'t>>,
-    ) -> Result<()> {
-        let context = function_name!();
-        trace!("{}", self.trace_item_stack(context));
-        let string_wrapper = string_wrapper.token(parse_tree)?.clone();
-        let string_wrapper_built = StringWrapperBuilder::default()
-            .string_wrapper(string_wrapper)
-            .build()
-            .into_diagnostic()?;
-        // Calling user action here
-        self.user_grammar.string_wrapper(&string_wrapper_built)?;
-        self.push(ASTType::StringWrapper(string_wrapper_built), context);
-        Ok(())
-    }
 }
 
 impl<'t> UserActionsTrait<'t> for ParolSandboxGrammarAuto<'t, '_> {
@@ -500,17 +367,13 @@ impl<'t> UserActionsTrait<'t> for ParolSandboxGrammarAuto<'t, '_> {
         parse_tree: &Tree<ParseTreeType<'t>>,
     ) -> Result<()> {
         match prod_num {
-            0 => self.parol_sandbox(&children[0], parse_tree),
-            1 => self.string(&children[0], &children[1], &children[2], parse_tree),
-            2 => self.string_list_0(&children[0], &children[1], parse_tree),
-            3 => self.string_list_group_0(&children[0], parse_tree),
-            4 => self.string_list_group_1(&children[0], parse_tree),
-            5 => self.string_list_group_2(&children[0], parse_tree),
-            6 => self.string_list_1(parse_tree),
-            7 => self.a(&children[0], parse_tree),
-            8 => self.b(&children[0], parse_tree),
-            9 => self.c(&children[0], parse_tree),
-            10 => self.string_wrapper(&children[0], parse_tree),
+            0 => self.expr_0(&children[0], &children[1], &children[2], parse_tree),
+            1 => self.expr_1(&children[0], &children[1], &children[2], parse_tree),
+            2 => self.expr_opt_0(&children[0], &children[1], parse_tree),
+            3 => self.expr_opt_1(parse_tree),
+            4 => self.a(&children[0], parse_tree),
+            5 => self.b(&children[0], parse_tree),
+            6 => self.c(&children[0], parse_tree),
             _ => Err(miette!("Unhandled production number: {}", prod_num)),
         }
     }
